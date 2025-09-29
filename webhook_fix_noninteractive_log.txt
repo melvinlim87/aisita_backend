@@ -1,0 +1,104 @@
+2025-09-04 10:47:27 - Non-interactive script started
+Checking database connection...
+Connected to database: decyphers
+Found 3 subscriptions
+
+=== Current Subscriptions ===
+ID: 1, User: 2, Plan: 7, Status: active
+  Stripe Sub ID: admin_RqH08aOsBB
+  Created: 2025-09-04 10:17:47, Updated: 2025-09-04 10:17:47
+  User email: admin@decyphers.com, Tokens: []
+  Plan name: Enterprise Annual One-Time, Tokens per cycle: 12600000
+  Stripe Price ID: price_1S2tS72MDBrgqcCAm0EQ2JPC
+  ---
+ID: 2, User: 3, Plan: 7, Status: active
+  Stripe Sub ID: admin_oprdVgK5Yh
+  Created: 2025-09-04 10:17:47, Updated: 2025-09-04 10:17:47
+  User email: superadmin@decyphers.com, Tokens: []
+  Plan name: Enterprise Annual One-Time, Tokens per cycle: 12600000
+  Stripe Price ID: price_1S2tS72MDBrgqcCAm0EQ2JPC
+  ---
+ID: 3, User: 1, Plan: 1, Status: active
+  Stripe Sub ID: sub_1S3aFD2MDBrgqcCAidIE75Cf
+  Created: 2025-09-04 10:18:36, Updated: 2025-09-04 10:18:36
+  User email: user@decyphers.com, Tokens: [{"id":1,"tokenable_type":"App\\Models\\User","tokenable_id":1,"name":"auth_token","abilities":["*"],"last_used_at":"2025-09-04T10:19:25.000000Z","expires_at":null,"created_at":"2025-09-04T10:17:49.000000Z","updated_at":"2025-09-04T10:19:25.000000Z"}]
+  Plan name: Free, Tokens per cycle: 12000
+  Stripe Price ID: price_1S2rp42MDBrgqcCA8m3VOztS
+  ---
+
+=== Available Plans ===
+ID: 1, Name: Free
+  Stripe Price ID: price_1S2rp42MDBrgqcCA8m3VOztS, Tokens: 12000
+ID: 2, Name: Basic One-Time
+  Stripe Price ID: price_1S2tP62MDBrgqcCAtJo2jajj, Tokens: 100000
+ID: 3, Name: Pro One-Time
+  Stripe Price ID: price_1S2tPk2MDBrgqcCA2C0438jP, Tokens: 350000
+ID: 4, Name: Enterprise One-Time
+  Stripe Price ID: price_1S2tQD2MDBrgqcCANeAvdSBS, Tokens: 1050000
+ID: 5, Name: Basic Annual One-Time
+  Stripe Price ID: price_1S2tQx2MDBrgqcCAtMOL4cta, Tokens: 1200000
+ID: 6, Name: Pro Annual One-Time
+  Stripe Price ID: price_1S2tRR2MDBrgqcCA53uaBa3x, Tokens: 4200000
+ID: 7, Name: Enterprise Annual One-Time
+  Stripe Price ID: price_1S2tS72MDBrgqcCAm0EQ2JPC, Tokens: 12600000
+ID: 8, Name: Basic Annual (35% Off)
+  Stripe Price ID: price_1S2tkv2MDBrgqcCAvbZHCDn0, Tokens: 1200000
+ID: 9, Name: Pro Annual (35% Off)
+  Stripe Price ID: price_1S2tlj2MDBrgqcCANdEK5tz2, Tokens: 4200000
+ID: 10, Name: Enterprise Annual (35% Off)
+  Stripe Price ID: price_1S2tmY2MDBrgqcCAY8NWUikU, Tokens: 12600000
+ID: 11, Name: Free
+  Stripe Price ID: price_1S2rp42MDBrgqcCA8m3VOztS, Tokens: 12000
+ID: 12, Name: Basic
+  Stripe Price ID: price_1S2sxC2MDBrgqcCAPtRcfmLE, Tokens: 100000
+ID: 13, Name: Pro
+  Stripe Price ID: price_1S2sxj2MDBrgqcCAmE4CiNVz, Tokens: 350000
+ID: 14, Name: Enterprise
+  Stripe Price ID: price_1S2syQ2MDBrgqcCAdyLgRQPj, Tokens: 1050000
+ID: 15, Name: Basic Annual (35% Off)
+  Stripe Price ID: price_1S2tkv2MDBrgqcCAvbZHCDn0, Tokens: 1200000
+ID: 16, Name: Pro Annual (35% Off)
+  Stripe Price ID: price_1S2tlj2MDBrgqcCANdEK5tz2, Tokens: 4200000
+ID: 17, Name: Enterprise Annual (35% Off)
+  Stripe Price ID: price_1S2tmY2MDBrgqcCAY8NWUikU, Tokens: 12600000
+
+=== Running Automatic Fixes ===
+SubscriptionService loaded successfully
+Checking Stripe data for subscription 1 with Stripe ID: admin_RqH08aOsBB
+Updated timestamp for subscription 1
+Attempting database updates for subscription 1 using multiple methods
+Method 1 (Eloquent): SUCCESS
+Method 2 (Query Builder): 0 row(s) affected
+Method 3 (Raw SQL): SUCCESS
+Method 4 (Service): SUCCESS
+Verification: Plan ID after updates: 7 (expected: 7)
+✓ Database updates working correctly for subscription 1
+Checking Stripe data for subscription 2 with Stripe ID: admin_oprdVgK5Yh
+Updated timestamp for subscription 2
+Attempting database updates for subscription 2 using multiple methods
+Method 1 (Eloquent): SUCCESS
+Method 2 (Query Builder): 0 row(s) affected
+Method 3 (Raw SQL): SUCCESS
+Method 4 (Service): SUCCESS
+Verification: Plan ID after updates: 7 (expected: 7)
+✓ Database updates working correctly for subscription 2
+Checking Stripe data for subscription 3 with Stripe ID: sub_1S3aFD2MDBrgqcCAidIE75Cf
+Updated timestamp for subscription 3
+Attempting database updates for subscription 3 using multiple methods
+Method 1 (Eloquent): SUCCESS
+Method 2 (Query Builder): 0 row(s) affected
+Method 3 (Raw SQL): SUCCESS
+Method 4 (Service): SUCCESS
+Verification: Plan ID after updates: 1 (expected: 1)
+✓ Database updates working correctly for subscription 3
+
+=== Validating Webhook Configuration ===
+Expected webhook URL: http://localhost:8000/api/stripe/webhook
+Ensure this webhook is properly configured in Stripe dashboard
+Webhook events to enable: customer.subscription.updated, customer.subscription.deleted
+
+=== Verifying Database Permissions ===
+Database write test: SUCCESS
+
+=== Script completed successfully ===
+2025-09-04 10:47:29 - Script finished

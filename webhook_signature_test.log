@@ -1,0 +1,26 @@
+2025-09-04 10:56:34 - Test started
+Current webhook secret: whsec...
+
+=== Option 1: Monkey patch the Webhook::constructEvent method ===
+Created test controller at C:\Users\James\Desktop\laze\Decyphers UI-20250428T044426Z-001\Backend\backend\Decyphers-Backend/TestStripeController.php
+
+=== Option 2: Create a direct function that simulates webhook handling ===
+Processing event type: customer.subscription.updated
+Processing subscription update for: sub_test123456
+Subscription has Stripe Plan ID: price_1S2sxj2MDBrgqcCAmE4CiNVz
+Matched to Plan ID: 13
+Calling handleSubscriptionUpdated with:
+- Stripe Subscription ID: sub_test123456
+- Status: active
+- Next Billing Date: 2025-10-04 10:56:34
+- Cancel At: null
+- Plan ID: 13
+No subscription found with stripe_subscription_id: sub_test123456
+Creating a test subscription entry for demonstration purposes...
+ERROR: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'start_date' in 'field list' (Connection: mysql, SQL: insert into `subscriptions` (`user_id`, `plan_id`, `stripe_subscription_id`, `status`, `start_date`, `next_billing_date`, `created_at`, `updated_at`) values (1, 1, sub_test123456, active, 2025-09-04 10:56:34, 2025-10-04 10:56:34, 2025-09-04 10:56:34, 2025-09-04 10:56:34))
+Stack trace: #0 C:\Users\James\Desktop\laze\Decyphers UI-20250428T044426Z-001\Backend\backend\Decyphers-Backend\vendor\laravel\framework\src\Illuminate\Database\Connection.php(776): Illuminate\Database\Connection->runQueryCallback('insert into `su...', Array, Object(Closure))
+#1 C:\Users\James\Desktop\laze\Decyphers UI-20250428T044426Z-001\Backend\backend\Decyphers-Backend\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php(42): Illuminate\Database\Connection->run('insert into `su...', Array, Object(Closure))
+#2 C:\Users\James\Desktop\laze\Decyphers UI-20250428T044426Z-001\Backend\backend\Decyphers-Backend\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php(3720): Illuminate\Database\MySqlConnection->insert('insert into `su...', Array)
+#3 C:\Users\James\Desktop\laze\Decyphers UI-20250428T044426Z-001\Backend\backend\Decyphers-Backend\test_webhook_skip_signature.php(315): Illuminate\Database\Query\Builder->insert(Array)
+#4 C:\Users\James\Desktop\laze\Decyphers UI-20250428T044426Z-001\Backend\backend\Decyphers-Backend\test_webhook_skip_signature.php(382): processStripeEvent('customer.subscr...', Array)
+#5 {main}

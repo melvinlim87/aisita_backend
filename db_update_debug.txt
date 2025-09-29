@@ -1,0 +1,30 @@
+
+Before update in DB at 2025-09-04 11:28:45
+Subscription ID: 3, Old Plan ID: 1, New Plan ID: 12
+Dumping subscription: {"id":3,"user_id":1,"plan_id":12,"stripe_subscription_id":"sub_1S3aFD2MDBrgqcCAidIE75Cf","status":"active","trial_ends_at":null,"next_billing_date":"2025-10-04T10:18:36.000000Z","canceled_at":null,"ends_at":null,"created_at":"2025-09-04T10:18:36.000000Z","updated_at":"2025-09-04T18:47:29.000000Z"}
+Query Builder update result: 1 row(s) affected
+Raw SQL update result: SUCCESS
+
+Before update in DB at 2025-09-04 11:32:35
+Subscription ID: 3, Old Plan ID: 12, New Plan ID: 1
+Dumping subscription: {"id":3,"user_id":1,"plan_id":1,"stripe_subscription_id":"sub_1S3aFD2MDBrgqcCAidIE75Cf","status":"active","trial_ends_at":null,"next_billing_date":"2025-10-04T10:18:36.000000Z","canceled_at":null,"ends_at":null,"created_at":"2025-09-04T10:18:36.000000Z","updated_at":"2025-09-04T11:28:45.000000Z"}
+Query Builder update result: 1 row(s) affected
+Raw SQL update result: SUCCESS
+
+Before update in DB at 2025-09-04 11:33:07
+Subscription ID: 3, Old Plan ID: 1, New Plan ID: 12
+Dumping subscription: {"id":3,"user_id":1,"plan_id":12,"stripe_subscription_id":"sub_1S3aFD2MDBrgqcCAidIE75Cf","status":"active","trial_ends_at":null,"next_billing_date":"2025-10-04T10:18:36.000000Z","canceled_at":null,"ends_at":null,"created_at":"2025-09-04T10:18:36.000000Z","updated_at":"2025-09-04T11:32:35.000000Z"}
+Query Builder update result: 1 row(s) affected
+Raw SQL update result: SUCCESS
+
+Before update in DB at 2025-09-08 05:23:35
+Subscription ID: 3, Old Plan ID: 2, New Plan ID: 4
+Dumping subscription: {"id":3,"user_id":4,"plan_id":4,"stripe_subscription_id":"sub_1S4xQF2MDBrgqcCAavjhnS5I","status":"active","trial_ends_at":null,"next_billing_date":"2025-10-08T05:15:41.000000Z","canceled_at":"2025-09-08T05:18:34.000000Z","ends_at":"2025-10-08T05:15:41.000000Z","created_at":"2025-09-08T05:15:41.000000Z","updated_at":"2025-09-08T05:18:35.000000Z"}
+Query Builder update result: 1 row(s) affected
+Raw SQL update result: SUCCESS
+
+Before update in DB at 2025-09-08 05:24:04
+Subscription ID: 3, Old Plan ID: 4, New Plan ID: 3
+Dumping subscription: {"id":3,"user_id":4,"plan_id":3,"stripe_subscription_id":"sub_1S4xQF2MDBrgqcCAavjhnS5I","status":"active","trial_ends_at":null,"next_billing_date":"2025-10-08T05:15:41.000000Z","canceled_at":"2025-09-08T05:18:34.000000Z","ends_at":"2025-10-08T05:15:41.000000Z","created_at":"2025-09-08T05:15:41.000000Z","updated_at":"2025-09-08T05:23:35.000000Z"}
+Query Builder update result: 1 row(s) affected
+Raw SQL update result: SUCCESS

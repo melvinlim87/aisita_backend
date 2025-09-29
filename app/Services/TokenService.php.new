@@ -1,0 +1,144 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\User;
+use App\Models\Purchase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class TokenService
+{
+    /**
+     * Update a user's token balance and record the purchase
+     *
+     * @param string $userId
+     * @param int $tokensToAdd
+     * @param array $purchaseData
+     * @return bool
+     */
+    public function updateUserTokens(string $userId, int $tokensToAdd, array $purchaseData): bool
+    {
+        try {
+            Log::info("Starting updateUserTokens for user: {$userId}, adding {$tokensToAdd} tokens");
+            DB::beginTransaction();
+            
+            // Find the user by Laravel ID only
+            $user = User::find($userId);
+            
+            if (!$user) {
+                Log::error("User not found: {$userId}");
+                DB::rollBack();
+                return false;
+            }
+            
+            Log::info("Found user: {$user->id}, current tokens: {$user->tokens}");
+            
+            // Update user's token balance
+            $previousTokens = $user->tokens;
+            $user->tokens += $tokensToAdd;
+            Log::info("Updating tokens from {$previousTokens} to {$user->tokens}");
+            $user->save();
+            Log::info("User tokens updated successfully");
+            
+            // Create purchase record
+            $purchase = [
+                'user_id' => $user->id,
+                'session_id' => $purchaseData['sessionId'] ?? null,
+                'price_id' => $purchaseData['priceId'] ?? null,
+                'amount' => $purchaseData['amount'] ?? 0,
+                'tokens' => $tokensToAdd,
+                'status' => $purchaseData['status'] ?? 'completed',
+                'customer_email' => $purchaseData['customerEmail'] ?? null,
+                'currency' => $purchaseData['currency'] ?? 'usd',
+                'type' => $purchaseData['type'] ?? 'purchase',
+            ];
+            
+            Log::info("Creating purchase record: " . json_encode($purchase));
+            $newPurchase = Purchase::create($purchase);
+            Log::info("Purchase record created with ID: {$newPurchase->id}");
+            
+            DB::commit();
+            Log::info("Transaction committed successfully");
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error updating user tokens: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
+    }
+    
+    /**
+     * Get a user's current token balance
+     *
+     * @param string $userId
+     * @return int|null
+     */
+    public function getUserTokens(string $userId): ?int
+    {
+        $user = User::find($userId);
+        
+        if (!$user) {
+            Log::error("User not found when getting tokens: {$userId}");
+            return null;
+        }
+        
+        return $user->tokens;
+    }
+    
+    /**
+     * Deduct tokens from a user's balance
+     *
+     * @param string $userId
+     * @param int $tokensToDeduct
+     * @param string $reason
+     * @return bool
+     */
+    public function deductUserTokens(string $userId, int $tokensToDeduct, string $reason = 'usage'): bool
+    {
+        try {
+            DB::beginTransaction();
+            
+            // Find the user by Laravel ID only
+            $user = User::find($userId);
+            
+            if (!$user) {
+                Log::error("User not found when deducting tokens: {$userId}");
+                DB::rollBack();
+                return false;
+            }
+            
+            // Check if user has enough tokens
+            if ($user->tokens < $tokensToDeduct) {
+                Log::warning("Insufficient tokens for user {$userId}: has {$user->tokens}, needs {$tokensToDeduct}");
+                DB::rollBack();
+                return false;
+            }
+            
+            // Update user's token balance
+            $user->tokens -= $tokensToDeduct;
+            $user->save();
+            
+            // Create usage record
+            Purchase::create([
+                'user_id' => $user->id,
+                'session_id' => 'usage-' . uniqid(),
+                'price_id' => null,
+                'amount' => 0,
+                'tokens' => -$tokensToDeduct,
+                'status' => 'completed',
+                'customer_email' => null,
+                'currency' => 'usd',
+                'type' => $reason,
+            ]);
+            
+            DB::commit();
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error deducting user tokens: " . $e->getMessage());
+            return false;
+        }
+    }
+}

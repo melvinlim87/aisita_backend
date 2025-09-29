@@ -1,0 +1,696 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Plan;
+use App\Models\Subscription;
+use App\Models\User;
+use App\Services\SubscriptionService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\StripeController;
+
+class SubscriptionController extends Controller
+{
+    /**
+     * The subscription service instance.
+     *
+     * @var \App\Services\SubscriptionService
+     */
+    protected $subscriptionService;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @param \App\Services\SubscriptionService $subscriptionService
+     * @return void
+     */
+    public function __construct(SubscriptionService $subscriptionService)
+    {
+        $this->subscriptionService = $subscriptionService;
+    }
+
+    /**
+     * Initiate a subscription by creating a Stripe checkout session.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function initiateSubscription(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'plan_id' => 'required|exists:plans,id',
+            ]);
+            
+            $user = Auth::user();
+            $plan = Plan::findOrFail($request->plan_id);
+            
+            // Check if user already has an active subscription
+            if ($user->hasActiveSubscription()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User already has an active subscription'
+                ], 400);
+            }
+            
+            if (!$plan->stripe_price_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This plan does not have a valid Stripe price ID'
+                ], 400);
+            }
+            
+            try {
+                // Set API key explicitly
+                \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+                
+                // Prepare customer data
+                $customerId = null;
+                try {
+                    // Search for existing customers with this email
+                    $customers = \Stripe\Customer::all([
+                        'email' => $user->email,
+                        'limit' => 1
+                    ]);
+                    
+                    if (count($customers->data) > 0) {
+                        // Update existing customer
+                        $customerId = $customers->data[0]->id;
+                        \Stripe\Customer::update($customerId, [
+                            'name' => $user->name
+                        ]);
+                    } else {
+                        // Create new customer
+                        $customer = \Stripe\Customer::create([
+                            'email' => $user->email,
+                            'name' => $user->name,
+                            'metadata' => [
+                                'userId' => (string)$user->id
+                            ]
+                        ]);
+                        $customerId = $customer->id;
+                    }
+                } catch (\Stripe\Exception\ApiErrorException $e) {
+                    Log::error('Error creating/updating customer: ' . $e->getMessage());
+                    // Continue without customer ID if there's an error
+                }
+                
+                // Create checkout session for subscription
+                $sessionConfig = [
+                    'mode' => 'subscription',  // Explicitly set to subscription
+                    'payment_method_types' => ['card'],
+                    'line_items' => [
+                        [
+                            'price' => $plan->stripe_price_id,
+                            'quantity' => 1,
+                        ],
+                    ],
+                    'success_url' => env('FRONTEND_URL') . '/membership-plan?session_id={CHECKOUT_SESSION_ID}',
+                    'cancel_url' => env('FRONTEND_URL') . '/membership-plan',
+                    'metadata' => [
+                        'user_id' => (string)$user->id,
+                        'plan_id' => (string)$plan->id,
+                    ],
+                ];
+                
+                // Add customer to session config
+                if ($customerId) {
+                    $sessionConfig['customer'] = $customerId;
+                }
+                
+                // Create the session
+                $session = \Stripe\Checkout\Session::create($sessionConfig);
+                
+                return response()->json([
+                    'success' => true,
+                    'id' => $session->id,
+                    'sessionUrl' => $session->url,
+                ]);
+                
+            } catch (\Stripe\Exception\ApiErrorException $e) {
+                Log::error('Stripe error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create checkout session: ' . $e->getMessage(),
+                ], 500);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error in initiateSubscription: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate subscription',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all available subscription plans.
+     *
+     * @return JsonResponse
+     */
+    public function getPlans(): JsonResponse
+    {
+        try {
+            $plans = Plan::orderBy('price')->get();
+            
+            return response()->json([
+                'success' => true,
+                'plans' => $plans
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve plans',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Subscribe a user to a plan.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function subscribe(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'plan_id' => 'required|exists:plans,id',
+            ]);
+
+            $user = Auth::user();
+            $plan = Plan::findOrFail($request->plan_id);
+
+            $result = $this->subscriptionService->createSubscription($user, $plan);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subscription created successfully',
+                    'subscription' => $result['subscription']
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error in SubscriptionController@subscribe: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create subscription',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel the user's subscription.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function cancel(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $subscription = $user->subscription;
+            
+            if (!$subscription) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active subscription found'
+                ], 404);
+            }
+            
+            $result = $this->subscriptionService->cancelSubscription($subscription);
+            
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subscription cancelled successfully',
+                    'subscription' => $result['subscription']
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error in SubscriptionController@cancel: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel subscription',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Initiate a plan change by creating a Stripe checkout session.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function changePlan(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'plan_id' => 'required|exists:plans,id'
+            ]);
+
+            $user = Auth::user();
+            $subscription = $user->subscription;
+
+            if (!$subscription) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active subscription found'
+                ], 404);
+            }
+
+            $newPlan = Plan::findOrFail($request->plan_id);
+            
+            // Don't allow changing to the same plan
+            if ($subscription->plan_id == $newPlan->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are already subscribed to this plan'
+                ], 400);
+            }
+
+            if (empty($newPlan->stripe_price_id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This plan does not have a valid Stripe price ID'
+                ], 400);
+            }
+            
+            try {
+                // Set API key explicitly
+                \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+                
+                // Create checkout session for plan change
+                $session = \Stripe\Checkout\Session::create([
+                    'payment_method_types' => ['card'],
+                    'mode' => 'subscription',
+                    'customer' => $subscription->user->stripe_customer_id ?? $this->getOrCreateStripeCustomerId($user),
+                    'subscription_data' => [
+                        'subscription' => $subscription->stripe_subscription_id,
+                    ],
+                    'line_items' => [
+                        [
+                            'price' => $newPlan->stripe_price_id,
+                            'quantity' => 1,
+                        ],
+                    ],
+                    'success_url' => env('FRONTEND_URL') . '/membership-plan?update_session_id={CHECKOUT_SESSION_ID}',
+                    'cancel_url' => env('FRONTEND_URL') . '/membership-plan',
+                    'metadata' => [
+                        'user_id' => (string) $user->id,
+                        'plan_id' => (string) $newPlan->id,
+                        'subscription_id' => (string) $subscription->id,
+                        'action' => 'plan_change'
+                    ],
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'id' => $session->id,
+                    'sessionUrl' => $session->url
+                ]);
+                
+            } catch (\Stripe\Exception\ApiErrorException $e) {
+                Log::error('Stripe error in changePlan: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create checkout session for plan change: ' . $e->getMessage()
+                ], 500);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error in SubscriptionController@changePlan: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate subscription plan change',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get or create a Stripe customer ID for a user.
+     *
+     * @param User $user
+     * @return string
+     */
+    private function getOrCreateStripeCustomerId(User $user): string
+    {
+        try {
+            // Search for existing customers with this email
+            $customers = \Stripe\Customer::all([
+                'email' => $user->email,
+                'limit' => 1
+            ]);
+            
+            if (count($customers->data) > 0) {
+                // Return existing customer ID
+                return $customers->data[0]->id;
+            } else {
+                // Create new customer
+                $customer = \Stripe\Customer::create([
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'metadata' => [
+                        'userId' => (string)$user->id
+                    ]
+                ]);
+                
+                return $customer->id;
+            }
+        } catch (\Exception $e) {
+            Log::error('Error creating/retrieving Stripe customer: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get the user's active subscription.
+     *
+     * @return JsonResponse
+     */
+    public function getUserSubscription(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $subscription = $user->subscription;
+            
+            if (!$subscription) {
+                return response()->json([
+                    'success' => true,
+                    'hasSubscription' => false
+                ]);
+            }
+            
+            // Load the plan relationship
+            $subscription->load('plan');
+            
+            return response()->json([
+                'success' => true,
+                'hasSubscription' => true,
+                'subscription' => $subscription
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve subscription',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Resume a previously canceled subscription if it hasn't ended yet.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resume(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $subscription = $user->subscription;
+            
+            if (!$subscription) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subscription found'
+                ], 404);
+            }
+            
+            if ($subscription->status !== 'canceled' || !$subscription->canceled_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subscription is not canceled'
+                ], 400);
+            }
+            
+            if ($subscription->ends_at && now()->gt($subscription->ends_at)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subscription has already ended and cannot be resumed'
+                ], 400);
+            }
+            
+            // Resume the subscription in Stripe
+            try {
+                \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+                
+                // If there's a Stripe subscription, reactivate it
+                if ($subscription->stripe_subscription_id) {
+                    \Stripe\Subscription::update($subscription->stripe_subscription_id, [
+                        'cancel_at_period_end' => false,
+                    ]);
+                }
+                
+                // Update local subscription record
+                $subscription->status = 'active';
+                $subscription->canceled_at = null;
+                $subscription->save();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subscription resumed successfully',
+                    'subscription' => $subscription
+                ]);
+                
+            } catch (\Stripe\Exception\ApiErrorException $e) {
+                Log::error('Stripe error in resuming subscription: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to resume subscription with Stripe: ' . $e->getMessage()
+                ], 500);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error in SubscriptionController@resume: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resume subscription',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all subscriptions (Admin only).
+     *
+     * @return JsonResponse
+     */
+    public function index(): JsonResponse
+    {
+        try {
+            $subscriptions = Subscription::with(['user', 'plan'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+            
+            return response()->json([
+                'success' => true,
+                'subscriptions' => $subscriptions
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve subscriptions',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process a webhook for subscription events.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function webhook(Request $request): JsonResponse
+    {
+        $payload = $request->getContent();
+        $sig_header = $request->header('Stripe-Signature');
+        $endpoint_secret = env('STRIPE_WEBHOOK_SECRET');
+        
+        try {
+            $event = \Stripe\Webhook::constructEvent($payload, $sig_header, $endpoint_secret);
+            
+            // Handle the event
+            switch ($event->type) {
+                case 'customer.subscription.updated':
+                    $subscription = $event->data->object;
+                    // Update the subscription in your database
+                    $this->subscriptionService->updateSubscriptionStatus($subscription);
+                    break;
+                case 'customer.subscription.deleted':
+                    $subscription = $event->data->object;
+                    // Mark the subscription as canceled in your database
+                    $this->subscriptionService->handleSubscriptionCanceled($subscription);
+                    break;
+                default:
+                    // Unexpected event type
+                    Log::info('Unhandled event type: ' . $event->type);
+            }
+            
+            return response()->json(['success' => true]);
+            
+        } catch(\UnexpectedValueException $e) {
+            Log::error('Invalid payload: ' . $e->getMessage());
+            return response()->json(['error' => 'Invalid payload'], 400);
+        } catch(\Stripe\Exception\SignatureVerificationException $e) {
+            Log::error('Invalid signature: ' . $e->getMessage());
+            return response()->json(['error' => 'Invalid signature'], 400);
+        } catch (\Exception $e) {
+            Log::error('Error processing webhook: ' . $e->getMessage());
+            return response()->json(['error' => 'Error processing webhook'], 500);
+        }
+    }
+
+    /**
+     * Verify and process a completed checkout session.
+     * This is useful for manually processing sessions when webhooks fail.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function verifyCheckoutSession(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'session_id' => 'required|string'
+            ]);
+            
+            \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+            
+            // Retrieve the session from Stripe
+            $session = \Stripe\Checkout\Session::retrieve([
+                'id' => $request->session_id,
+                'expand' => ['subscription', 'customer']
+            ]);
+            
+            // Verify payment status
+            if ($session->payment_status !== 'paid') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment not completed',
+                    'status' => $session->payment_status
+                ], 400);
+            }
+            
+            // Get metadata
+            $userId = $session->metadata->user_id ?? $session->metadata->userId ?? null;
+            $planId = $session->metadata->plan_id ?? $session->metadata->planId ?? null;
+            
+            Log::info('Extracted metadata - userId: ' . $userId . ', planId: ' . $planId);
+            
+            if (!$userId || !$planId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing user ID or plan ID in session metadata',
+                    'metadata' => $session->metadata
+                ], 400);
+            }
+            
+            // Find user and plan
+            $user = \App\Models\User::find($userId);
+            $plan = \App\Models\Plan::find($planId);
+            
+            if (!$user || !$plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid user ID or plan ID',
+                    'userId' => $userId,
+                    'planId' => $planId
+                ], 400);
+            }
+            
+            // Get subscription ID from the session
+            $subscriptionId = $session->subscription;
+            
+            if (is_object($subscriptionId)) {
+                $subscriptionId = $subscriptionId->id;
+            }
+            
+            if (!$subscriptionId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subscription created for this session'
+                ], 400);
+            }
+            
+            // Check if subscription already exists
+            $existingSubscription = \App\Models\Subscription::where('stripe_subscription_id', $subscriptionId)->first();
+            
+            if ($existingSubscription) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subscription already exists',
+                    'subscription' => $existingSubscription
+                ]);
+            }
+            
+            // Get subscription details from Stripe
+            $stripeSubscription = \Stripe\Subscription::retrieve([
+                'id' => $subscriptionId,
+                'expand' => ['items.data.price.product']
+            ]);
+            
+            // Calculate next billing date
+            $nextBillingDate = now()->addSeconds($stripeSubscription->current_period_end - $stripeSubscription->current_period_start);
+            
+            // Create the subscription data
+            $subscriptionData = [
+                'stripe_subscription_id' => $subscriptionId,
+                'status' => 'active',
+                'next_billing_date' => $nextBillingDate,
+                'canceled_at' => null,
+                'ends_at' => null,
+            ];
+            
+            // Use subscription service to create the subscription
+            $subscriptionService = app()->make(\App\Services\SubscriptionService::class);
+            $result = $subscriptionService->createSubscription($user, $plan, $subscriptionData);
+            
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subscription created successfully',
+                    'subscription' => $result['subscription']
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 500);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error in verifyCheckoutSession: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to verify checkout session: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
