@@ -24,10 +24,10 @@ return [
         'http://localhost:5174', 
         'https://ai.decyphers.com', 
         'https://dev-ai.decyphers.com',
-	'https://ai-dev.decyphers.com', 
+	    'https://ai-dev.decyphers.com', 
         'https://admin.decyphers.com',
         'https://decyphers.com',
-        'https://bolt.new'
+        'https://aisita.ai'
     ],
 
     'allowed_origins_patterns' => [
