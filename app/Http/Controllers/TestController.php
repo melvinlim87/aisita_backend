@@ -296,27 +296,6 @@ class TestController extends Controller
     }
 
     public function testing() {
-        return ['stat' => env('STRIPE_WEBHOOK_SECRET')];
-        try {
-            $now = date('Y-m-d H:i:s');
-            $oneMinuteAgo = now()->subMinute();
-            $tasks = \App\Models\ScheduleTask::whereBetween('execute_at', [$oneMinuteAgo, $now])
-                ->where('executed', false)
-                ->get();
-            return ['data' => $tasks, 'now' => $now];
-            // return ['now' => $now];
-            // return $now;
-            $task = \App\Models\ScheduleTask::find(1);
-    
-            $cron = CronExpression::factory($task->cron_expression);
-            $date = $cron->getNextRunDate($now)->format('Y-m-d H:i:s');
-            return ['res' => $date];  
-    
-            return $task;
-        } catch (\Throwable $th) {
-            return ['err' => $th->getMessage()];
-            throw $th;
-        }
-
+        return \App\Models\Plan::all();
     }
 }
