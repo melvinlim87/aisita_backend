@@ -20,15 +20,7 @@ return [
     'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     
     'allowed_origins' => [
-        'http://localhost:5173', 
-        'http://localhost:5174', 
-        'https://ai.decyphers.com', 
-        'https://dev-ai.decyphers.com',
-	    'https://ai-dev.decyphers.com', 
-        'https://admin.decyphers.com',
-        'https://decyphers.com',
-        'https://aisita.ai',
-        'https://user.aisita.ai',
+        "*"
     ],
 
     'allowed_origins_patterns' => [

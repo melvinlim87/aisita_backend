@@ -47,7 +47,7 @@ class CorsMiddleware
             
             // Add origin-specific headers if origin is allowed
             if ($origin && in_array($origin, $allowedOrigins)) {
-                $response->headers->set('Access-Control-Allow-Origin', '*');
+                $response->headers->set('Access-Control-Allow-Origin', $origin);
                 $response->headers->set('Access-Control-Allow-Credentials', 'true');
             } else {
                 // For debugging: log when origin is not allowed
@@ -65,7 +65,7 @@ class CorsMiddleware
 
         // Add CORS headers to the response if origin is allowed
         if ($origin && in_array($origin, $allowedOrigins)) {
-            $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
         }
