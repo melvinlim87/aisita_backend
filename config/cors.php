@@ -15,8 +15,8 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'register', 'password/*', 'email/verify/*', 'forgot-password', 'reset-password', 'openrouter/*', 'usage'],
-    
+    'paths' => ['*','api/*'],
+
     'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     
     'allowed_origins' => [
@@ -29,6 +29,7 @@ return [
         'https://decyphers.com',
         'https://aisita.ai',
         'https://user.aisita.ai',
+        'https://admin.aisita.ai',
     ],
   
     'allowed_headers' => ['*'],
