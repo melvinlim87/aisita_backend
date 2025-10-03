@@ -181,6 +181,7 @@ class AuthController extends Controller
         $referralService = new ReferralService;
         $tokenService = new TokenService($referralService);
         $smtpConfig = \App\Models\SmtpConfiguration::where('is_default', true)->first();
+        \Log::info('SMTP Configuration: ' . json_encode($smtpConfig));
         if ($smtpConfig) {
             Config::set('mail.default', 'smtp');
             Config::set('mail.mailers.smtp.transport', 'smtp');
