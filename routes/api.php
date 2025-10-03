@@ -68,7 +68,7 @@ Route::post('/stripe/webhook', [StripeController::class, 'handleWebhook']);
 //End public routes
 
 // Protected routes
-Route::middleware(['auth:sanctum',])->group(function () {
+Route::middleware(['auth:sanctum', 'cors'])->group(function () {
 
         // Auth endpoints
         Route::post('/logout', [AuthController::class, 'logout']);

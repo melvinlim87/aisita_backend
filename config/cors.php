@@ -30,10 +30,6 @@ return [
         'https://aisita.ai',
         'https://user.aisita.ai',
     ],
-
-    'allowed_origins_patterns' => [
-        '/\.webcontainer-api\.io$/',
-    ],
   
     'allowed_headers' => ['*'],
 
