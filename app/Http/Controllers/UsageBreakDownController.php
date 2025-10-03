@@ -16,7 +16,7 @@ class UsageBreakDownController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getUserUsageBreakDown(Request $request): JsonResponse
+    public function getUserUsageBreakDown(Request $request)
     {
         // Get the authenticated user
         $user = $request->user();
