@@ -1155,7 +1155,7 @@ class StripeController extends Controller
             ]);
 
             // Get the authenticated user
-            $user = auth()->user();
+            $user = Auth::user();
             if (!$user) {
                 return response()->json([
                     'success' => false,

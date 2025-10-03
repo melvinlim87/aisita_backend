@@ -1284,8 +1284,8 @@ class OpenAIController extends Controller
             ], 401);
         }
         
-        $user = auth()->user();
-        $userId = auth()->id();
+        $user = Auth::user();
+        $userId = Auth::user()->id;
         
         // Calculate the estimated token cost before processing the request
         $modelId = $request->input('model_id', 'gpt-4o-2024-08-06'); // Default model

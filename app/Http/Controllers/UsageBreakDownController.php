@@ -19,7 +19,7 @@ class UsageBreakDownController extends Controller
     public function getUserUsageBreakDown(Request $request): JsonResponse
     {
         // Get the authenticated user
-        $user = auth()->user();
+        $user = Auth::user();
         
         // Debug user authentication
         Log::info('User usage breakdown request', [

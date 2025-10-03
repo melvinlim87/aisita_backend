@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\TokenUsage;
 use App\Services\TokenService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Stripe;
@@ -111,7 +112,7 @@ class TokenController extends Controller
         }
         
         $package = $this->tokenPackages[$packageId];
-        $user = auth()->user();
+        $user = Auth::user();
         
         // Check if this is a user's first token purchase after consuming free tokens
         // Only allow token purchases if the user has an active subscription
@@ -185,7 +186,7 @@ class TokenController extends Controller
      */
     public function getUsageHistory(Request $request): JsonResponse
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         // Validate request parameters
         $validated = $request->validate([
@@ -239,7 +240,7 @@ class TokenController extends Controller
     public function getTokenUsageData(Request $request): JsonResponse
     {
         // Get the authenticated user
-        $user = auth()->user();
+        $user = Auth::user();
         
         // Debug user authentication
         Log::info('Token usage data request', [
@@ -516,7 +517,7 @@ class TokenController extends Controller
         ]);
         
         // Check if user has admin privileges
-        $user = auth()->user();
+        $user = Auth::user();
         if (!in_array($user->role_id, self::ADMIN_ROLES)) {
             return response()->json([
                 'success' => false,
@@ -601,7 +602,7 @@ class TokenController extends Controller
     public function getManualTokenAdditions(Request $request): JsonResponse
     {
         // Check if user has admin privileges
-        $user = auth()->user();
+        $user = Auth::user();
         if (!in_array($user->role_id, self::ADMIN_ROLES)) {
             return response()->json([
                 'success' => false,

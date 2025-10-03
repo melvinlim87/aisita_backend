@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -1483,8 +1484,8 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
     
         try {
             // Check if user has an active subscription
-            $user = auth()->user();
-            $userId = auth()->id();
+            $user = Auth::user();
+            $userId = Auth::user()->id;
             
             $originalModelId = $request->input('modelId', 'qwen/qwen2.5-vl-72b-instruct:free');
             $modelId = $originalModelId;
@@ -1679,7 +1680,7 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
                 if (auth()->check()) {
                     try {
                         // Generate unique filenames
-                        $userId = auth()->id();
+                        $userId = Auth::user()->id;
                         
                         foreach ($files as $file) {
                             $filename = 'chart_analysis/' . $userId . '/' . time() . '_' . Str::random(20) . '.' . $file->getClientOriginalExtension();
@@ -2757,8 +2758,8 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
         $results = [];
         $allHistoryIds = [];
         $totalTokenCost = 0;
-        $user = auth()->user();
-        $userId = auth()->id();
+        $user = Auth::user();
+        $userId = Auth::user()->id;
         
         // Pre-check total token cost to ensure user has enough tokens
         $inputTokens = $this->estimatedAnalysisTokens['input'];
@@ -3525,8 +3526,8 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
         // execution time to infinite
         ini_set('max_execution_time', 0);
 
-        $user = auth()->user();
-        $userId = auth()->id();
+        $user = Auth::user();
+        $userId = Auth::user()->id;
 
         $modelId = $request->input('modelId', 'deepseek/deepseek-r1-0528:free');
         $messages = $request->input('messages', []);
@@ -3813,8 +3814,8 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
     {
         try {
             // Check if user has an active subscription
-            $user = auth()->user();
-            $userId = auth()->id();
+            $user = Auth::user();
+            $userId = Auth::user()->id;
 
             if (!$this->hasValidSubscription($user)) {
                 return response()->json([
@@ -4243,7 +4244,7 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
 
     // -- Get chatbot history ---
     public function getChatbotHistory(Request $request) {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (!$user) {
             return response()->json([
@@ -4263,7 +4264,7 @@ private $chUserContent = '请分析此市场图表并提供全面的交易策略
     // --- AI Chatbot function ---
     public function chatbot(Request $request) {
         ini_set('max_execution_time', '0');
-        $user = auth()->user();
+        $user = Auth::user();
         $sender = $request->sender;
         $message = $request->message;
         $timestamp = $request->timestamp;
