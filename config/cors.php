@@ -27,7 +27,8 @@ return [
 	    'https://ai-dev.decyphers.com', 
         'https://admin.decyphers.com',
         'https://decyphers.com',
-        'https://aisita.ai'
+        'https://aisita.ai',
+        'https://user.aisita.ai',
     ],
 
     'allowed_origins_patterns' => [
