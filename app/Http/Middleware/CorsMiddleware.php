@@ -36,6 +36,11 @@ class CorsMiddleware
             'timestamp' => date('Y-m-d H:i:s')
         ]) . "\n", FILE_APPEND);
 
+        // Determine if we allow all or specific origins
+        $allowAll = in_array('*', $allowedOrigins);
+        $isAllowed = $allowAll || ($origin && in_array($origin, $allowedOrigins));
+
+
         // Handle preflight OPTIONS requests first
         if ($request->isMethod('OPTIONS')) {
             $response = response('', 200);
@@ -64,8 +69,14 @@ class CorsMiddleware
         $response = $next($request);
 
         // Add CORS headers to the response if origin is allowed
-        if ($origin && in_array($origin, $allowedOrigins)) {
-            $response->headers->set('Access-Control-Allow-Origin', '*');
+        // if ($origin && in_array($origin, $allowedOrigins)) {
+        //     $response->headers->set('Access-Control-Allow-Origin', '*');
+        //     $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        //     $response->headers->set('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+        // }
+
+        if ($isAllowed) {
+            $response->headers->set('Access-Control-Allow-Origin', $allowAll ? '*' : $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
         }
